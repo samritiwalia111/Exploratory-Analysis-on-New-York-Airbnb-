@@ -1,0 +1,202 @@
+---
+title: "Airbnb Price Prediction Analysis"
+output:
+  word_document: default
+  html_document: default
+language: R
+---
+
+```{r}
+# Install necessary packages (if not already installed)
+
+install.packages("readxl")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("corrplot")
+install.packages("openxlsx")
+
+```
+
+```{r}
+# Load the packages
+
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(readxl)
+library(openxlsx)
+```
+
+```{r}
+# Load the data (replace the path with the actual path to your file)
+my_data <- read_excel("/Users/Sam/Desktop/EDA/Data_Airbnb.xlsx")
+
+```
+
+```{r}
+# View first few rows of the data
+head(my_data)
+
+```
+
+```{r}
+# Check for missing values
+sum(is.na(my_data)) # Total missing values 
+colSums(is.na(my_data)) # Missing values per column
+
+```
+
+```{r}
+# Remove rows with missing values in a specific column (e.g., 'reviews_per_month')
+my_data <- my_data[complete.cases(my_data$reviews_per_month), ]
+
+```
+
+```{r}
+# Check for duplicates
+duplicates <- my_data[duplicated(my_data), ]
+my_data <- my_data[!duplicated(my_data), ]
+
+```
+
+```{r}
+# Summary of the dataset
+summary(my_data)
+
+```
+
+```{r}
+# Structure of the dataset
+str(my_data)
+
+```
+
+```{r}
+# Plot the distribution of the "price" variable using a histogram
+ggplot(my_data, aes(x = price)) +
+  geom_histogram(fill = "#69b3a2", color = "black") +
+  labs(title = "Distribution of Airbnb Prices", x = "Price", y = "Count")
+```
+
+```{r}
+# Compute the number of missing values for each column
+sum_null_values <- colSums(is.na(my_data))
+print(sum_null_values)
+```
+
+```{r}
+# Plot the number of missing values for each column
+barplot(sum_null_values, main = "Number of Missing Values per Column", 
+        xlab = "Columns", ylab = "Number of Missing Values", las = 2)
+
+```
+
+```{r}
+# Scatter plot of price vs. number of reviews
+ggplot(my_data, aes(x = number_of_reviews, y = price)) +
+  geom_point() +
+  labs(x = "Number of Reviews", y = "Price", title = "Price vs. Number of Reviews")
+
+```
+
+```{r}
+# Select numeric columns for correlation analysis
+num_cols <- sapply(my_data, is.numeric)
+num_data <- my_data[, num_cols]
+num_data <- num_data[, !names(num_data) %in% c("id", "host_id", "latitude", "longitude")]
+
+```
+
+```{r}
+# Calculate the correlation matrix
+corr_matrix <- cor(num_data)
+
+```
+
+```{r}
+# Plot the correlation matrix heatmap
+heatmap(corr_matrix, 
+        col = colorRampPalette(c("white", "blue"))(100), 
+        scale = "none", 
+        symm = TRUE,
+        margins = c(10,10),
+        main = "Correlation Matrix Heatmap",
+        xlab = "Variables", 
+        ylab = "Variables")
+```
+
+```{r}
+# Scatter plot of price vs. availability_365
+ggplot(my_data, aes(x = availability_365, y = price)) +
+  geom_point() +
+  labs(x = "Availability in 365 Days", y = "Price", title = "Price vs. Availability in 365 Days")
+
+```
+
+```{r}
+# Scatter plot of price vs. minimum_nights
+ggplot(my_data, aes(x = minimum_nights, y = price)) +
+  geom_point() +
+  labs(x = "Minimum Nights", y = "Price", title = "Price vs. Minimum Nights")
+
+```
+
+```{r}
+# Bar plot of price by neighborhood group
+ggplot(my_data, aes(x = neighbourhood_group, y = price)) +
+  geom_bar(stat = "summary", fun = "mean") +
+  labs(x = "Neighborhood Group", y = "Price", title = "Price by Neighborhood Group")
+
+```
+
+```{r}
+# Bar plot of price by neighborhood
+ggplot(my_data, aes(x = price, y = neighbourhood)) +
+  stat_summary(fun = "mean", geom = "bar", fill = "#99c2a2") +
+  coord_flip() +
+  labs(x = "Price", y = "Neighborhood", title = "Price by Neighborhood")
+
+```
+
+```{r}
+# Fit a linear regression model
+model <- lm(price ~ minimum_nights + number_of_reviews + availability_365 + neighbourhood_group, data = my_data)
+```
+
+```{r}
+# Summarize the model
+summary(model)
+```
+
+```{r}
+# Predict prices using the model
+my_data$predicted_price <- predict(model, newdata = my_data)
+```
+
+```{r}
+# Visualize predicted vs actual prices
+ggplot(my_data, aes(x = predicted_price, y = price)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  labs(title = "Predicted vs Actual Prices", x = "Predicted Price", y = "Actual Price")
+
+```
+
+```{r}
+# Calculate Mean Squared Error (MSE) for model evaluation
+mse <- mean((my_data$predicted_price - my_data$price)^2)
+print(paste("Mean Squared Error (MSE):", mse))
+
+```
+
+# Save the dataset with predicted prices to a new Excel file
+
+```{r}
+# Save the dataset with predicted prices to a new Excel file
+write.xlsx(my_data, "/Users/Sam/Desktop/Airbnb.xlsx")
+
+```
+
+```{r}
+rmarkdown::render("Airbnb.Rmd")
+
+```
