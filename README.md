@@ -1,4 +1,4 @@
-# Exploratory-Analysis-on-New-York-Airbnb-
+# Exploratory-Analysis-on-New-York-Airbnb
 
 ## 📍 **Project Overview**
 
